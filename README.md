@@ -6,8 +6,8 @@ Dự án phân tích kinh tế độc lập theo phong cách ECC với:
 * Skills, commands và rules riêng
 * Backend Python FastAPI
 * Hệ thống RAG sử dụng Chroma Vector Store
-* Trend Engine xác định xu hướng 1-6 tháng
-* Data ingestion từ PDF, URL tin tức và văn bản thô
+* Trend Engine xác định xu hướng ngắn hạn
+* Data ingestion từ PDF, Word, Excel(.csv&.xlsx) và URL tin tức và văn bản thô
 
 ## Cấu Trúc Dự Án
 
