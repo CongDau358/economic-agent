@@ -13,6 +13,7 @@ description: Handle factual financial/economic questions with grounded RAG retri
   - `intent-classification-rules.md`
   - `rag-rules.md`
   - `retrieval-rules.md`
+  - `retrieval-governance-rules.md`
   - `hallucination-prevention.md`
   - `output-format-rules.md`
 
@@ -45,32 +46,39 @@ Handle factual financial and economic queries using grounded RAG retrieval.
    - top-k retrieval (`4-8` default)
    - metadata-aware ranking (relevance + source reliability + recency)
 
-5. **Relevance Validation**
+5. **Retrieval Governance** (`retrieval-governance-rules.md`)
+   - rerank by relevance + source trust; deduplicate chunks
+   - enforce quality gates (factual vs strategic claim thresholds)
+   - never use low-confidence retrieval without `confidence.warnings`
+   - prefer shorter grounded answers over long unsupported prose
+
+6. **Relevance Validation**
    - remove low-relevance chunks
    - remove duplicate/near-duplicate chunks
    - keep only evidence that directly supports the asked intent
 
-6. **Hallucination Prevention**
+7. **Hallucination Prevention**
    - If evidence is insufficient or low quality:
      - return `INSUFFICIENT_DATA`
    - Never output uncited factual or numeric claims
 
-7. **Reasoning**
+8. **Reasoning**
    - apply `rag-query-reasoning` skill
    - generate grounded answer only from retrieved or user-provided evidence
 
-8. **Confidence Scoring**
+9. **Confidence Scoring**
    - compute confidence from:
      - retrieval quality
      - source reliability
      - evidence consistency
    - downgrade for stale, conflicting, or sparse evidence
 
-9. **Output Formatting**
+10. **Output Formatting**
    - include:
      - `answer`
-     - `evidence_snapshot`
-     - `confidence`
+     - `evidence` / `evidence_snapshot`
+     - `retrieval_quality`
+     - `confidence` (with `band` and `warnings`)
      - `citations`
 
 ## Output Contract
@@ -78,12 +86,18 @@ Handle factual financial and economic queries using grounded RAG retrieval.
 ```json
 {
   "answer": "string",
-  "evidence_snapshot": ["string"],
+  "evidence": [],
+  "retrieval_quality": {
+    "status": "OK|LOW_CONFIDENCE|INSUFFICIENT_DATA",
+    "chunk_count": 0,
+    "warnings": []
+  },
   "confidence": {
     "value": 0.0,
-    "band": "HIGH|MEDIUM|LOW",
-    "reasoning": "string"
+    "band": "HIGH|MEDIUM|LOW|INSUFFICIENT",
+    "reasoning": "string",
+    "warnings": []
   },
-  "citations": ["source_type | company | period | doc_id/chunk_id"]
+  "citations": ["source_type | company | sector"]
 }
 ```

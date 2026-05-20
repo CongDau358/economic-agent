@@ -8,9 +8,12 @@ from openai import OpenAI
 
 SYSTEM_PROMPT = """You are a financial and economic analyst.
 
-Rules:
-- Answer ONLY using provided context
-- If data is insufficient, say "insufficient data"
+Retrieval governance (non-negotiable):
+- Retrieval quality outweighs answer length; prefer short, grounded answers.
+- Answer ONLY using provided context; never invent metrics, companies, or events.
+- If data is insufficient, respond exactly: insufficient data
+- Do not make unsupported financial claims.
+- When context is low-trust or sparse, keep claims minimal and factual.
 - Be concise and structured"""
 
 
@@ -43,8 +46,23 @@ Question:
         return "insufficient data"
 
 
-def build_rag_answer(question: str, contexts: List[Dict[str, str]]) -> Dict[str, object]:
-    if not contexts:
+def build_rag_answer(
+    question: str,
+    contexts: List[Dict[str, str]],
+    *,
+    retrieval_assessment: Dict[str, object] | None = None,
+) -> Dict[str, object]:
+    assessment = retrieval_assessment or {}
+    warnings = list(assessment.get("warnings") or [])
+    band = str(assessment.get("band") or "INSUFFICIENT")
+    status = str(assessment.get("status") or "INSUFFICIENT_DATA")
+    conf_value = float(assessment.get("value") or 0.25)
+    conf_reasoning = str(
+        assessment.get("reasoning")
+        or "No retrieved context available for answering the question."
+    )
+
+    if not contexts or status == "INSUFFICIENT_DATA":
         return {
             "summary": "insufficient data",
             "signals": {"financial": [], "sentiment": [], "macro": []},
@@ -53,11 +71,19 @@ def build_rag_answer(question: str, contexts: List[Dict[str, str]]) -> Dict[str,
             "risks": [],
             "opportunities": [],
             "confidence": {
-                "value": 0.25,
-                "reasoning": "No retrieved context available for answering the question.",
+                "value": conf_value,
+                "band": "INSUFFICIENT",
+                "reasoning": conf_reasoning,
+                "warnings": warnings,
+            },
+            "retrieval_quality": {
+                "status": "INSUFFICIENT_DATA",
+                "chunk_count": int(assessment.get("chunk_count") or 0),
+                "warnings": warnings,
             },
             "answer": "insufficient data",
             "evidence": [],
+            "citations": [],
         }
 
     evidence = [
@@ -77,21 +103,39 @@ def build_rag_answer(question: str, contexts: List[Dict[str, str]]) -> Dict[str,
     )
     llm_answer = generate_llm_response(query=question, context=retrieved_context)
 
+    if llm_answer == "insufficient data":
+        conf_value = min(conf_value, 0.35)
+        band = "INSUFFICIENT"
+
+    citations = [
+        f"{e.get('source_type', 'unknown')} | {e.get('company', 'unknown')} | {e.get('sector', 'unknown')}"
+        for e in evidence
+    ]
+
     return {
-        "summary": "RAG-based answer generated from retrieved context and LLM reasoning.",
+        "summary": (
+            "RAG-based answer generated from governed retrieval."
+            if llm_answer != "insufficient data"
+            else "insufficient data"
+        ),
         "signals": {"financial": [], "sentiment": [], "macro": []},
         "score": {},
-        "trend": "NEUTRAL",
+        "trend": "NEUTRAL" if llm_answer != "insufficient data" else "INSUFFICIENT_DATA",
         "risks": [],
         "opportunities": [],
         "confidence": {
-            "value": 0.7 if llm_answer != "insufficient data" else 0.35,
-            "reasoning": (
-                "LLM response grounded by retrieved context."
-                if llm_answer != "insufficient data"
-                else "LLM could not produce grounded output from available context."
-            ),
+            "value": conf_value if llm_answer != "insufficient data" else min(conf_value, 0.35),
+            "band": band,
+            "reasoning": conf_reasoning,
+            "warnings": warnings,
+        },
+        "retrieval_quality": {
+            "status": status,
+            "chunk_count": int(assessment.get("chunk_count") or len(contexts)),
+            "trusted_chunk_count": int(assessment.get("trusted_chunk_count") or 0),
+            "warnings": warnings,
         },
         "answer": llm_answer if question else "insufficient data",
         "evidence": evidence,
+        "citations": citations,
     }

@@ -1,5 +1,8 @@
 # Embedding Rules
 
+## Implementation
+- `backend/rag/embedding/` (`normalizer.py`, `model.py`, `pipeline.py`)
+
 ## Model Consistency
 - Use the same embedding model for ingestion and query-time retrieval.
 - Track `embedding_model` and `embedding_version` in metadata.

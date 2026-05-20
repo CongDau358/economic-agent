@@ -22,7 +22,7 @@ model: sonnet
 
 ## Required Reasoning Protocol
 
-1. Retrieve evidence first.
+1. Retrieve evidence first; apply `retrieval-governance-rules.md` before answering.
 2. Extract factual statements from evidence only.
 3. Convert facts to domain signals.
 4. Score signals (+1, 0, -1).
@@ -45,6 +45,7 @@ model: sonnet
 
 - No investment advice.
 - No uncited factual claims.
+- No unsupported financial claims; never use low-confidence retrieval without warnings.
 - Use `INSUFFICIENT_DATA` when evidence threshold fails.
 
 ## Command Mapping

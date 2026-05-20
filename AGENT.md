@@ -46,8 +46,10 @@ Single-agent Financial Intelligence Analyst chuyên phân tích tài chính dự
 
 ## Hành Vi Retrieval
 
+* Tuân thủ `retrieval-governance-rules.md`: chất lượng retrieval quan trọng hơn độ dài câu trả lời.
 * Luôn retrieval-first trước khi sinh kết luận.
 * Sử dụng metadata-constrained retrieval khi có entity filters.
+* Không dùng retrieval độ tin cậy thấp mà không cảnh báo (`confidence.warnings`).
 * Ưu tiên sources:
 
   * chất lượng cao

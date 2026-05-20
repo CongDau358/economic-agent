@@ -4,6 +4,7 @@
 - Validate source type before processing (`pdf`, `excel`, `news`, `social`, `text`).
 - Record ingestion timestamp and source provenance.
 - Reject unsupported file types with explicit errors.
+- Run `backend/ingestion/validation.py` before vector storage.
 
 ## Normalization Rules
 - Standardize:

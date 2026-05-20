@@ -15,15 +15,43 @@ Document added to system.
 - metadata tagging
 
 ### 3. Retrieval
-Document becomes searchable.
+Document becomes searchable (`lifecycle_state=active`).
 
 ### 4. Validation
-Evidence quality evaluated.
+Evidence quality evaluated at ingest-time and during retrieval ranking.
 
 ### 5. Archival
-Outdated information downgraded in retrieval ranking.
+Outdated information downgraded in retrieval ranking (`lifecycle_state=archived`).
 
-## Implementation Notes
-- Validation should run both at ingest-time and periodically after retrieval usage.
-- Archival should reduce ranking weight, not delete evidence immediately.
-- Lifecycle state should be traceable via metadata flags and timestamps.
+## Implementation
+
+- `backend/memory/lifecycle.py`
+- `.claude/rules/memory-lifecycle-rules.md`
+
+## Lifecycle States
+
+| State | Retrieval |
+|-------|-----------|
+| `ingestion` | not searchable |
+| `processing` | not searchable |
+| `active` | full rank |
+| `review` | 0.75x rank |
+| `archived` | 0.45x rank |
+
+## Age Thresholds
+
+- `review`: content year ≥ 3 years old
+- `archived`: content year ≥ 5 years old (news ≥ 2 years)
+
+## Metadata Fields
+
+- `lifecycle_state`
+- `lifecycle_updated_at`
+- `lifecycle_reason`
+- `retrieval_rank_multiplier`
+
+## Rules
+
+- Validation runs at ingest-time (`validation.py`) and retrieval-time (`retrieval_governance.py`).
+- Archival downgrades ranking; records are not deleted immediately.
+- Lifecycle is traceable via metadata flags and timestamps.

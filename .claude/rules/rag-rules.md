@@ -18,3 +18,6 @@ Ensure every answer is grounded in retrieved evidence from the financial knowled
 ## Failure Behavior
 - If no credible evidence is found, do not speculate.
 - Ask for additional data sources when needed.
+
+## Governance
+- Apply `retrieval-governance-rules.md` for quality gates, trust prioritization, and low-confidence warnings.

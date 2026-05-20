@@ -29,5 +29,7 @@
 - `citations`
 
 ## Guardrails
+- Follow `retrieval-governance-rules.md`: grounded evidence over answer length.
 - No uncited numeric claims.
 - If evidence is weak, return `INSUFFICIENT_DATA` plus data request guidance.
+- If answering with low-confidence retrieval, include explicit warnings in `confidence.warnings`.

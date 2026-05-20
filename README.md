@@ -103,6 +103,7 @@ uvicorn backend.main:app --reload --port 8000
 
 * `POST /upload`
   Upload PDF, URL hoặc raw text vào processed JSON và vector database.
+  PDF chạy pipeline: extract → clean → section detection → financial-priority chunking → embedding.
 
 * `POST /predict`
   Chạy phân tích xu hướng deterministic.
@@ -114,6 +115,18 @@ uvicorn backend.main:app --reload --port 8000
   Kiểm tra trạng thái hệ thống.
 
 ## Ví Dụ Request
+
+### Upload PDF (báo cáo tài chính)
+
+```bash
+curl -X POST http://localhost:8000/upload \
+  -F "source_type=pdf" \
+  -F "company=Acme Corp" \
+  -F "sector=Manufacturing" \
+  -F "file=@/path/to/annual_report.pdf"
+```
+
+Response gồm `pdf_pipeline` (document_type, page_count, section_count, financial_priorities).
 
 ### Upload dữ liệu văn bản
 

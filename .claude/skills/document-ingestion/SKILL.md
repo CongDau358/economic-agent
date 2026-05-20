@@ -12,11 +12,12 @@
 ## Workflow
 1. Validate source and required fields.
 2. Extract raw content using source-specific parser.
-3. Normalize text/tables and enrich metadata.
-4. Chunk by source-aware strategy with overlap.
-5. Generate embeddings.
-6. Upsert chunks into vector store.
-7. Persist processed artifact for lineage/audit.
+3. **PDF:** run `pdf-processing-rules.md` pipeline (extract → clean → sections → priority chunk).
+4. Normalize text/tables and enrich metadata.
+5. Chunk by source-aware strategy with overlap (non-PDF).
+6. Generate embeddings.
+7. Upsert chunks into vector store.
+8. Persist processed artifact for lineage/audit.
 
 ## Output Schema
 - `ingestion_status`

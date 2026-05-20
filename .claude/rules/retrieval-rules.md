@@ -23,3 +23,6 @@
   - at least 2 supporting chunks for strategic claims
   - at least 1 high-quality chunk for factual claims
 - If threshold fails, return `INSUFFICIENT_DATA`.
+
+## Governance
+- Enforced in detail by `retrieval-governance-rules.md` (backend: `retrieval_governance.py`).

@@ -1,40 +1,68 @@
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass
-from typing import Dict, List
+from typing import Dict, List, Optional
 
-from langchain_community.embeddings import FakeEmbeddings
-from langchain_community.vectorstores import Chroma
-from langchain_core.documents import Document
+from .embedding.pipeline import EmbeddingBatchResult
+from .storage.store import StoredRetrievalResult, VectorStorageSystem
 
 
 @dataclass(frozen=True)
 class RetrievalResult:
     text: str
     metadata: Dict[str, str]
+    distance: float = 1.0
+    chunk_id: str = ""
 
 
 class VectorStoreService:
     def __init__(self, persist_directory: str) -> None:
-        os.makedirs(persist_directory, exist_ok=True)
-        self._store = Chroma(
-            collection_name="economic_agent_docs",
-            persist_directory=persist_directory,
-            embedding_function=FakeEmbeddings(size=256),
+        self._storage = VectorStorageSystem(persist_directory=persist_directory)
+
+    def add_documents(self, records: List[Dict[str, str]]) -> EmbeddingBatchResult:
+        return self._storage.upsert_chunks(records)
+
+    def query(
+        self,
+        question: str,
+        top_k: int = 4,
+        *,
+        company: Optional[str] = None,
+        industry: Optional[str] = None,
+        year: Optional[str] = None,
+        source: Optional[str] = None,
+        document_type: Optional[str] = None,
+    ) -> List[RetrievalResult]:
+        hits = self._storage.query(
+            question,
+            top_k=top_k,
+            company=company,
+            industry=industry,
+            year=year,
+            source=source,
+            document_type=document_type,
+        )
+        return [
+            RetrievalResult(
+                text=item.text,
+                metadata=item.metadata,
+                distance=item.distance,
+                chunk_id=item.chunk_id,
+            )
+            for item in hits
+        ]
+
+    def get_by_chunk_id(self, chunk_id: str) -> RetrievalResult | None:
+        hit = self._storage.get_by_chunk_id(chunk_id)
+        if hit is None:
+            return None
+        return RetrievalResult(
+            text=hit.text,
+            metadata=hit.metadata,
+            distance=hit.distance,
+            chunk_id=hit.chunk_id,
         )
 
-    def add_documents(self, records: List[Dict[str, str]]) -> None:
-        docs = [
-            Document(page_content=r["text"], metadata={k: v for k, v in r.items() if k != "text"})
-            for r in records
-        ]
-        if docs:
-            self._store.add_documents(docs)
-
-    def query(self, question: str, top_k: int = 4) -> List[RetrievalResult]:
-        docs = self._store.similarity_search(question, k=top_k)
-        return [
-            RetrievalResult(text=d.page_content, metadata={k: str(v) for k, v in d.metadata.items()})
-            for d in docs
-        ]
+    @property
+    def embedding_model(self) -> str:
+        return self._storage.embedding_model
