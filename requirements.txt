@@ -23,7 +23,7 @@ pdfplumber==0.11.4
 python-docx==1.1.2              # NEW: Word document support (was missing!)
 openpyxl==3.1.5                 # Excel support
 beautifulsoup4==4.12.3          # URL/HTML ingestion
- apscheduler==3.10.4
+
 # ── Market data ───────────────────────────────────────────────────────────────
 yfinance==0.2.43                # NEW: Yahoo Finance — free, no key needed
 fredapi==0.5.2                  # NEW: FRED macro data (needs free API key)
@@ -43,3 +43,5 @@ pytest==8.3.3                   # NEW
 pytest-asyncio==0.24.0          # NEW
 pytest-mock==3.14.0             # NEW
 pytest-cov==5.0.0               # NEW
+slowapi==0.1.9               # NEW: rate limiting
+apscheduler==3.10.4          # NEW: schedule_ingest.py
