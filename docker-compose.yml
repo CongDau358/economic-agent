@@ -1,0 +1,65 @@
+version: "3.9"
+
+services:
+
+  # ── Backend API ─────────────────────────────────────────────────────────────
+  api:
+    build: .
+    container_name: economic-agent-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    env_file: .env
+    volumes:
+      # Persist vector store and processed data across restarts
+      - ./data:/app/data
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - econ-net
+
+  # ── Redis (optional cache) ───────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: economic-agent-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - econ-net
+
+  # ── Frontend ─────────────────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: economic-agent-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
+    networks:
+      - econ-net
+
+networks:
+  econ-net:
+    driver: bridge
+
+# ── Usage ────────────────────────────────────────────────────────────────────
+# Start everything:    docker compose up --build
+# API only:            docker compose up api redis
+# View logs:           docker compose logs -f api
+# Stop:                docker compose down

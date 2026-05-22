@@ -1,0 +1,45 @@
+# ── Dockerfile ────────────────────────────────────────────────────────────────
+# Multi-stage build: keeps final image lean (~200 MB vs ~600 MB)
+
+# Stage 1 — build/compile dependencies
+FROM python:3.11-slim AS builder
+
+WORKDIR /build
+
+# System deps needed for chromadb / pdfplumber
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libpoppler-cpp-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
+
+
+# Stage 2 — runtime
+FROM python:3.11-slim AS runtime
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PATH="/install/bin:$PATH" \
+    PYTHONPATH="/app"
+
+# Poppler runtime (pdfplumber)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpoppler-cpp-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /install /install
+WORKDIR /app
+
+# App source (exclude venv, data, .env)
+COPY backend/ ./backend/
+COPY .env.example .env.example
+
+# Non-root user for security
+RUN useradd -m appuser
+USER appuser
+
+EXPOSE 8000
+
+CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
