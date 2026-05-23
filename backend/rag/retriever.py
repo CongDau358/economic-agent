@@ -12,7 +12,8 @@ RAG Retriever theo AGENT.md:
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
+
 from typing import Any
 
 log = logging.getLogger("economic_agent.rag")
@@ -97,7 +98,7 @@ class RAGRetriever:
         def recency_boost(ingested_at: str) -> float:
             try:
                 dt = datetime.fromisoformat(ingested_at)
-                days_old = (datetime.utcnow() - dt).days
+                days_old = (datetime.now(timezone.utc) - dt).days
                 return max(0.7, 1.0 - days_old * 0.002)
             except Exception:
                 return 0.9

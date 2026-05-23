@@ -17,7 +17,7 @@ import hashlib
 import json
 import logging
 import re
-from datetime import datetime
+from datetime import datetime, timezone 
 from io import BytesIO
 from pathlib import Path
 from typing import Any
@@ -144,7 +144,7 @@ def ingest(
         "sector": sector,
         "source": source_label,
         "source_type": source_type,
-        "ingested_at": datetime.utcnow().isoformat(),
+        "ingested_at": datetime.now(timezone.utc).isoformat(),
     }
 
     # ── 4. Upsert to ChromaDB ─────────────────────────────────────────────────
@@ -169,7 +169,7 @@ def ingest(
     # ── 5. Save raw to disk ───────────────────────────────────────────────────
     raw_dir = Path(settings.raw_data_dir) / company.replace(" ", "_")
     raw_dir.mkdir(parents=True, exist_ok=True)
-    ts = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+    ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     (raw_dir / f"{source_type}_{ts}.txt").write_text(raw, encoding="utf-8")
 
     return {

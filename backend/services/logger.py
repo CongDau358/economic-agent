@@ -25,7 +25,7 @@ class JSONFormatter(logging.Formatter):
         import json, traceback, datetime
 
         log = {
-            "ts": datetime.datetime.utcnow().isoformat() + "Z",
+            "ts": datetime.datetime.now(timezone.utc).isoformat() + "Z",
             "level": record.levelname,
             "logger": record.name,
             "msg": record.getMessage(),

@@ -1,0 +1,48 @@
+[project]
+name = "economic-agent"
+version = "1.1.0"
+description = "Financial intelligence agent — RAG + Trend Scoring + Market Data"
+requires-python = ">=3.11"
+readme = "README.md"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths    = ["tests"]
+python_files = ["test_*.py"]
+
+[tool.ruff]
+line-length    = 100
+target-version = "py311"
+src            = ["backend"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = [
+    "E501",   # line too long — handled by formatter
+    "B008",   # do not perform function calls in default args (FastAPI Depends)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101"]   # allow assert in tests
+
+[tool.mypy]
+python_version         = "3.11"
+ignore_missing_imports = true
+no_strict_optional     = true
+exclude                = ["venv", "data", "frontend"]
+
+[tool.coverage.run]
+source   = ["backend"]
+omit     = ["backend/ingestion/*", "backend/rag/*",
+            "backend/retrieval/*", "backend/orchestration/*",
+            "backend/memory/*"]
+
+[tool.coverage.report]
+show_missing   = true
+skip_covered   = false
+fail_under     = 60
+exclude_lines  = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+]

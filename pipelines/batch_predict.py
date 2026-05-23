@@ -1,38 +1,36 @@
 """
-pipelines/batch_predict.py  (TẠO MỚI)
+pipelines/batch_predict.py  (CẬP NHẬT)
 
 Chạy /predict cho nhiều công ty từ file JSON/CSV.
-Output: CSV kết quả + JSON chi tiết.
+Output: CSV + JSON + Excel qua export service.
 
-Dùng:
-    python pipelines/batch_predict.py --input companies.json --output results/
+    python pipelines/batch_predict.py --sample
+    python pipelines/batch_predict.py --input companies.json --output data/batch_results
+    python pipelines/batch_predict.py --input companies.json --format csv,json
 """
 
 from __future__ import annotations
 
 import argparse
-import csv
 import json
 import sys
-from datetime import datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from backend.trend_engine import TrendEngine
-from backend.services.logger import setup_logging
+from backend.services.export import export_predictions
+from backend.services.logger import get_logger, setup_logging
 
 setup_logging()
-
-import logging
-log = logging.getLogger("pipelines.batch_predict")
+log = get_logger("pipelines.batch_predict")
 
 
 SAMPLE_INPUT = [
     {
         "company": "Vinamilk",
         "ticker": "VNM.HM",
-        "financial_signals": ["revenue_up", "margin_stable", "dividend_increase"],
+        "financial_signals": ["revenue_up", "margin_stable", "eps_beat"],
         "sentiment_signals": ["analyst_upgrade", "positive_news"],
         "macro_signals": ["policy_support", "inflation_stable"],
     },
@@ -43,14 +41,32 @@ SAMPLE_INPUT = [
         "sentiment_signals": ["institutional_buying"],
         "macro_signals": ["interest_rate_stable", "credit_easing"],
     },
+    {
+        "company": "VinGroup",
+        "ticker": "VIC.HM",
+        "financial_signals": ["revenue_up", "debt_increase"],
+        "sentiment_signals": ["media_positive", "analyst_downgrade"],
+        "macro_signals": ["interest_rate_high", "sector_tailwind"],
+    },
+    {
+        "company": "Hoa Phat Group",
+        "ticker": "HPG.HM",
+        "financial_signals": ["revenue_down", "margin_compression"],
+        "sentiment_signals": ["negative_news"],
+        "macro_signals": ["commodity_cost_up", "gdp_growth"],
+    },
 ]
 
 
-def run_batch(companies: list[dict], output_dir: Path) -> None:
-    output_dir.mkdir(parents=True, exist_ok=True)
-    engine = TrendEngine()
+def run_batch(
+    companies: list[dict],
+    output_dir: Path,
+    formats: list[str],
+) -> list[dict]:
+    engine  = TrendEngine()
     results = []
-    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    log.info("batch.start", extra={"n": len(companies)})
 
     for item in companies:
         company = item.get("company", "Unknown")
@@ -64,44 +80,56 @@ def run_batch(companies: list[dict], output_dir: Path) -> None:
             result["ticker"] = item.get("ticker", "")
             results.append(result)
             log.info("batch.predict", extra={
-                "company": company,
-                "score": result.get("score"),
-                "trend": result.get("trend", {}).get("short_term"),
+                "company":    company,
+                "score":      result.get("score"),
+                "short_term": (result.get("trend") or {}).get("short_term"),
+                "status":     result.get("status"),
             })
         except Exception as exc:
             log.error("batch.failed", extra={"company": company, "error": str(exc)})
-            results.append({"company": company, "status": "ERROR", "error": str(exc)})
+            results.append({
+                "company": company,
+                "ticker":  item.get("ticker", ""),
+                "status":  "ERROR",
+                "error":   str(exc),
+                "score":   None,
+                "trend":   None,
+                "confidence": 0.0,
+                "risks":   [],
+                "opportunities": [],
+                "executive_summary": "",
+            })
 
-    # JSON chi tiết
-    json_path = output_dir / f"batch_{ts}.json"
-    json_path.write_text(json.dumps(results, ensure_ascii=False, indent=2))
+    # Export
+    paths = export_predictions(results, output_dir, formats=formats)
+    log.info("batch.complete", extra={"n": len(results), "paths": paths})
 
-    # CSV tóm tắt
-    csv_path = output_dir / f"batch_{ts}.csv"
-    with open(csv_path, "w", newline="", encoding="utf-8") as f:
-        writer = csv.writer(f)
-        writer.writerow(["company", "ticker", "score", "short_term", "near_term", "confidence", "status"])
-        for r in results:
-            trend = r.get("trend") or {}
-            writer.writerow([
-                r.get("company"),
-                r.get("ticker", ""),
-                r.get("score", ""),
-                trend.get("short_term", "") if isinstance(trend, dict) else "",
-                trend.get("near_term", "") if isinstance(trend, dict) else "",
-                r.get("confidence", ""),
-                r.get("status", ""),
-            ])
+    print(f"\n{'─'*55}")
+    print(f"  Batch Predict — {len(results)} công ty")
+    print(f"{'─'*55}")
+    for fmt, path in paths.items():
+        print(f"  {fmt.upper():6s}: {path}")
 
-    log.info("batch.complete", extra={"json": str(json_path), "csv": str(csv_path), "n": len(results)})
-    print(f"\n✓ JSON: {json_path}\n✓ CSV:  {csv_path}\n✓ {len(results)} công ty đã xử lý")
+    # Summary table
+    print(f"\n  {'Company':<20} {'Score':>6}  {'Trend':<10}  Status")
+    print(f"  {'─'*20}  {'─'*6}  {'─'*10}  {'─'*16}")
+    for r in results:
+        trend = r.get("trend") or {}
+        st    = trend.get("short_term", "N/A") if isinstance(trend, dict) else "N/A"
+        score = f"{r['score']:.3f}" if r.get("score") is not None else "  N/A"
+        print(f"  {r['company']:<20} {score:>6}  {st:<10}  {r.get('status','')}")
+    print(f"{'─'*55}\n")
+
+    return results
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--input", help="File JSON chứa danh sách công ty")
-    parser.add_argument("--output", default="data/batch_results", help="Thư mục output")
-    parser.add_argument("--sample", action="store_true", help="Chạy với dữ liệu mẫu")
+def main():
+    parser = argparse.ArgumentParser(description="Batch predict for multiple companies")
+    parser.add_argument("--input",   help="File JSON danh sách công ty")
+    parser.add_argument("--output",  default="data/batch_results", help="Thư mục output")
+    parser.add_argument("--format",  default="csv,json,excel",
+                        help="Formats xuất (csv,json,excel)")
+    parser.add_argument("--sample",  action="store_true", help="Dùng dữ liệu mẫu")
     args = parser.parse_args()
 
     if args.sample or not args.input:
@@ -110,4 +138,9 @@ if __name__ == "__main__":
     else:
         companies = json.loads(Path(args.input).read_text(encoding="utf-8"))
 
-    run_batch(companies, Path(args.output))
+    formats = [f.strip() for f in args.format.split(",")]
+    run_batch(companies, Path(args.output), formats)
+
+
+if __name__ == "__main__":
+    main()

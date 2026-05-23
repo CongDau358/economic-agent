@@ -125,3 +125,80 @@ env:
 	else \
 		echo ".env đã tồn tại"; \
 	fi
+
+# ── Security & Benchmarking ───────────────────────────────────────────────────
+gen-key:
+	$(PYTHON) scripts/generate_api_key.py
+
+gen-keys:
+	$(PYTHON) scripts/generate_api_key.py --count 3
+
+benchmark:
+	$(PYTHON) scripts/benchmark.py --requests 20 --concurrency 4
+
+benchmark-predict:
+	$(PYTHON) scripts/benchmark.py --endpoint predict --requests 30
+
+test-all:
+	pytest tests/ -v \
+		--tb=short \
+		--cov=backend \
+		--cov-report=term-missing \
+		--cov-report=html:htmlcov
+
+# ── Health & monitoring ───────────────────────────────────────────────────────
+health:
+	curl -s http://localhost:8000/health | python -m json.tool
+
+health-deep:
+	curl -s "http://localhost:8000/health?deep=true" | python -m json.tool
+
+test-health:
+	pytest tests/test_health.py tests/test_config.py -v
+
+test-config:
+	pytest tests/test_config.py -v
+
+# ── Admin ─────────────────────────────────────────────────────────────────────
+admin-stats:
+	curl -s -H "X-API-Key: $(KEY)" http://localhost:8000/admin/stats | python -m json.tool
+
+admin-docs:
+	curl -s -H "X-API-Key: $(KEY)" "http://localhost:8000/admin/documents?limit=10" | python -m json.tool
+
+admin-clear-cache:
+	curl -s -X DELETE -H "X-API-Key: $(KEY)" http://localhost:8000/admin/cache | python -m json.tool
+
+admin-clear-jobs:
+	curl -s -X DELETE -H "X-API-Key: $(KEY)" http://localhost:8000/admin/jobs | python -m json.tool
+
+# ── Seed data ─────────────────────────────────────────────────────────────────
+seed:
+	$(PYTHON) scripts/seed_data.py
+
+seed-company:
+	$(PYTHON) scripts/seed_data.py --company $(COMPANY)
+
+seed-list:
+	$(PYTHON) scripts/seed_data.py --list
+
+# ── Tests mới ─────────────────────────────────────────────────────────────────
+test-admin:
+	pytest tests/test_admin.py -v
+
+test-pipelines:
+	pytest tests/test_pipelines.py -v
+
+test-notify:
+	pytest tests/test_notify.py -v
+
+# ── Search ────────────────────────────────────────────────────────────────────
+search:
+	curl -s -H "X-API-Key: $(KEY)" \
+		"http://localhost:8000/search?q=$(Q)&top_k=5" | python -m json.tool
+
+test-search:
+	pytest tests/test_search.py -v
+
+test-notify:
+	pytest tests/test_notify.py -v
