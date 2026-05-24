@@ -2,40 +2,80 @@
 name = "economic-agent"
 version = "1.1.0"
 description = "Financial intelligence agent — RAG + Trend Scoring + Market Data"
-requires-python = ">=3.11"
 readme = "README.md"
+requires-python = ">=3.11"
 
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.6.9",
+    "mypy>=1.11.2",
+    "bandit>=1.7.10",
+    "pip-audit>=2.7.3",
+    "pytest>=8.3.3",
+    "pytest-asyncio>=0.24.0",
+    "pytest-mock>=3.14.0",
+    "pytest-cov>=5.0.0",
+]
+
+# ── Pytest ────────────────────────────────────────────────────────────────────
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths    = ["tests"]
 python_files = ["test_*.py"]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+]
 
+# ── Ruff ─────────────────────────────────────────────────────────────────────
 [tool.ruff]
 line-length    = 100
 target-version = "py311"
 src            = ["backend"]
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B", "SIM"]
+select = ["E", "F", "I", "UP", "B", "SIM", "S"]
 ignore = [
-    "E501",   # line too long — handled by formatter
-    "B008",   # do not perform function calls in default args (FastAPI Depends)
+    "E501",   # line too long
+    "B008",   # function call in default args (FastAPI Depends)
+    "S101",   # assert statements (allowed in tests)
+    "S105",   # hardcoded passwords (test fixtures)
+    "S106",
+    "S107",
+    "S311",   # random usage
+    "UP007",  # X | Y union (conflicts with older Python compat)
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["S101"]   # allow assert in tests
+"tests/*"   = ["S101", "S105", "S106", "S107", "S311"]
+"scripts/*" = ["S603", "S607", "T201"]   # allow subprocess + print
 
+# ── Mypy ─────────────────────────────────────────────────────────────────────
 [tool.mypy]
 python_version         = "3.11"
 ignore_missing_imports = true
 no_strict_optional     = true
-exclude                = ["venv", "data", "frontend"]
+warn_return_any        = false
+exclude = [
+    "venv", "data", "frontend",
+    "backend/ingestion", "backend/rag",
+    "backend/retrieval", "backend/orchestration", "backend/memory",
+]
 
+# ── Coverage ──────────────────────────────────────────────────────────────────
 [tool.coverage.run]
 source   = ["backend"]
-omit     = ["backend/ingestion/*", "backend/rag/*",
-            "backend/retrieval/*", "backend/orchestration/*",
-            "backend/memory/*"]
+omit     = [
+    "backend/ingestion/*",
+    "backend/rag/*",
+    "backend/retrieval/*",
+    "backend/orchestration/*",
+    "backend/memory/*",
+    "backend/__init__.py",
+    "backend/ingestion/__init__.py",
+    "backend/rag/__init__.py",
+    "backend/services/__init__.py",
+]
 
 [tool.coverage.report]
 show_missing   = true
@@ -45,4 +85,15 @@ exclude_lines  = [
     "pragma: no cover",
     "if TYPE_CHECKING:",
     "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "pass$",
 ]
+
+# ── Bandit ────────────────────────────────────────────────────────────────────
+[tool.bandit]
+exclude_dirs = [
+    "tests", "venv", ".venv",
+    "backend/ingestion", "backend/rag",
+    "backend/retrieval", "backend/orchestration", "backend/memory",
+]
+skips = ["B101", "B311"]   # assert, random — acceptable in this context

@@ -202,3 +202,64 @@ test-search:
 
 test-notify:
 	pytest tests/test_notify.py -v
+
+# ── Integration tests ─────────────────────────────────────────────────────────
+test-integration:
+	pytest tests/test_integration.py -v --tb=short
+
+# ── Full test suite with all groups ──────────────────────────────────────────
+test-all-groups:
+	pytest tests/ -v --tb=short \
+		--cov=backend \
+		--cov-report=term-missing \
+		--cov-report=html:htmlcov \
+		--cov-fail-under=60 \
+		-p no:warnings
+
+# ── Shell monitoring ─────────────────────────────────────────────────────────
+monitor:
+	API_URL=http://localhost:8000 API_KEY=$(KEY) \
+		bash scripts/health_check.sh --deep
+
+monitor-loop:
+	API_URL=http://localhost:8000 API_KEY=$(KEY) \
+		bash scripts/health_check.sh --deep --interval 60
+
+# ── Frontend ─────────────────────────────────────────────────────────────────
+frontend-dev:
+	cd frontend && npm install && npm run dev
+
+frontend-build:
+	cd frontend && npm run build
+
+# ── Key rotation ──────────────────────────────────────────────────────────────
+rotate-key:
+	$(PYTHON) scripts/rotate_api_key.py
+
+rotate-key-safe:
+	$(PYTHON) scripts/rotate_api_key.py --keep-old
+
+list-keys:
+	$(PYTHON) scripts/rotate_api_key.py --list
+
+# ── Dev environment ───────────────────────────────────────────────────────────
+dev-up:
+	docker compose -f docker-compose.yml -f docker-compose.override.yml up --build
+
+dev-down:
+	docker compose -f docker-compose.yml -f docker-compose.override.yml down
+
+# ── Install dev tools ─────────────────────────────────────────────────────────
+install-dev:
+	pip install -e ".[dev]"
+
+security:
+	bandit -r backend/ -x backend/ingestion,backend/rag,backend/retrieval,backend/orchestration,backend/memory --severity-level medium -f txt
+	pip-audit -r requirements.txt
+
+# ── Script tests ──────────────────────────────────────────────────────────────
+test-scripts:
+	pytest tests/test_scripts.py tests/test_rate_limiter.py -v
+
+test-rate:
+	pytest tests/test_rate_limiter.py -v

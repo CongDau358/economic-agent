@@ -1,0 +1,47 @@
+# docker-compose.override.yml
+# Dev overrides — tự động được merge khi chạy: docker compose up
+# KHÔNG commit file này nếu có secrets
+
+services:
+
+  api:
+    # Override: bind mount source code cho hot-reload
+    volumes:
+      - ./backend:/app/backend
+      - ./data:/app/data
+    environment:
+      - LOG_LEVEL=debug
+    command: uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
+
+  # Thêm Redis Commander (UI cho Redis) trong dev
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: economic-agent-redis-ui
+    restart: unless-stopped
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis
+    networks:
+      - econ-net
+
+  # Thêm Mailhog (SMTP mock) để test notifications
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: economic-agent-mailhog
+    restart: unless-stopped
+    ports:
+      - "1025:1025"   # SMTP
+      - "8025:8025"   # Web UI
+    networks:
+      - econ-net
+
+# Dùng Mailhog trong dev: thêm vào .env
+# SMTP_HOST=mailhog
+# SMTP_PORT=1025
+# SMTP_USER=test
+# SMTP_PASS=test
+# NOTIFY_ENABLED=true
+# NOTIFY_EMAIL_TO=admin@test.com
