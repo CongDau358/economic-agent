@@ -250,3 +250,54 @@ class TrendEngine:
             ],
             "warnings": warnings,
         }
+
+
+# ── Backward compatibility ─────────────────────────────────────────────────────
+# Bản gốc dùng predict_trend() — giữ lại để không break các import cũ.
+
+from dataclasses import dataclass as _dc
+
+@_dc
+class _TrendResult:
+    summary:      str
+    signals:      dict
+    score:        float | None
+    trend:        str | None
+    risks:        list
+    opportunities: list
+    confidence:   float
+
+
+_default_engine = TrendEngine()
+
+
+def predict_trend(
+    financial_signals: list[str],
+    sentiment_signals: list[str],
+    macro_signals: list[str],
+    company: str = "Unknown",
+) -> _TrendResult:
+    """
+    Backward-compat wrapper — bản cũ dùng hàm này.
+    Gọi nội bộ TrendEngine.analyze() rồi map về _TrendResult.
+    """
+    result = _default_engine.analyze(
+        company=company,
+        financial_signals=financial_signals,
+        sentiment_signals=sentiment_signals,
+        macro_signals=macro_signals,
+    )
+    trend_val = result.get("trend") or {}
+    return _TrendResult(
+        summary=result.get("executive_summary", ""),
+        signals={
+            "financial": result.get("financial_signals", {}),
+            "sentiment": result.get("sentiment_signals", {}),
+            "macro":     result.get("macro_signals", {}),
+        },
+        score=result.get("score"),
+        trend=trend_val.get("short_term") if isinstance(trend_val, dict) else trend_val,
+        risks=result.get("risks", []),
+        opportunities=result.get("opportunities", []),
+        confidence=result.get("confidence", 0.0),
+    )

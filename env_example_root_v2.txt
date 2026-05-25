@@ -1,0 +1,54 @@
+# ── Required ──────────────────────────────────────────────────────────────────
+OPENAI_API_KEY=sk-...
+
+# ── Auth ─────────────────────────────────────────────────────────────────────
+AUTH_ENABLED=true
+API_KEYS=your-secret-key-1,your-secret-key-2
+
+# ── LLM ──────────────────────────────────────────────────────────────────────
+OPENAI_MODEL=gpt-4o-mini
+OPENAI_EMBEDDING_MODEL=text-embedding-3-small
+
+# ── Market data (tuỳ chọn) ───────────────────────────────────────────────────
+# FRED API key: miễn phí tại https://fred.stlouisfed.org/docs/api/api_key.html
+FRED_API_KEY=
+ALPHA_VANTAGE_API_KEY=
+
+# ── Redis cache (để trống = dùng in-memory) ──────────────────────────────────
+REDIS_URL=redis://localhost:6379/0
+CACHE_TTL_SECONDS=3600
+
+# ── Paths ────────────────────────────────────────────────────────────────────
+CHROMA_PERSIST_DIR=data/vector
+CHROMA_COLLECTION_NAME=economic_docs
+RAW_DATA_DIR=data/raw
+PROCESSED_DATA_DIR=data/processed
+
+# ── Server ───────────────────────────────────────────────────────────────────
+HOST=0.0.0.0
+PORT=8000
+LOG_LEVEL=info
+
+# ── Trend engine weights (tổng phải = 1.0) ───────────────────────────────────
+WEIGHT_FINANCIAL=0.5
+WEIGHT_SENTIMENT=0.3
+WEIGHT_MACRO=0.2
+
+# ── RAG ──────────────────────────────────────────────────────────────────────
+RAG_TOP_K=5
+RAG_SCORE_THRESHOLD=0.5
+RAG_CHUNK_SIZE=1000
+RAG_CHUNK_OVERLAP=200
+
+# ── Notifications (tuỳ chọn) ─────────────────────────────────────────────────
+# Slack: https://api.slack.com/messaging/webhooks
+# Teams: https://learn.microsoft.com/en-us/microsoftteams/platform/webhooks-and-connectors
+NOTIFY_ENABLED=false
+NOTIFY_WEBHOOK_URL=
+NOTIFY_EMAIL_TO=
+NOTIFY_EMAIL_FROM=
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=
+SMTP_PASS=
+NOTIFY_ERROR_RATE_THRESHOLD=0.2
